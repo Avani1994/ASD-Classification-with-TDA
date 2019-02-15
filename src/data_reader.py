@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from tqdm.autonotebook import tqdm
+from features import Subject
 
 
 class ABIDEDataReader:
@@ -17,7 +18,7 @@ class ABIDEDataReader:
     def __init__(self, verbose=True):
         self.verbose = verbose
 
-    def read(self, data_dir, num_rois=200):
+    def read(self, data_dir, num_rois=200, compute_features=True):
         """
         Read the data from specified `data_dir`
 
@@ -47,6 +48,11 @@ class ABIDEDataReader:
                     label = int(label) - 1
                     roi_time_series = np.genfromtxt(os.path.join(data_dir, fname + '_rois_cc' + str(num_rois) + '.1D'))
 
-                    subject_data.append(Subject(subject_id, label, roi_time_series))
+                    subject = Subject(subject_id, label, roi_time_series)
+
+                    if compute_features == True:
+                        subject.compute_derived_measures()
+
+                    subject_data.append(subject)
 
         return subject_data
