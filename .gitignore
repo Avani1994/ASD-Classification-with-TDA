@@ -108,3 +108,4 @@ venv.bak/
 
 # Exclude data folders
 data/
+data_processed/
