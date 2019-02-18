@@ -1,11 +1,34 @@
+import torch
 from torch import nn
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.svm import SVC
 import sklearn_tda
+import numpy as np
+
+
+def create_linear(layer_shapes, dropout_prob):
+    linear = nn.Sequential()
+
+    for layer_num, (num_in, num_out) in enumerate(zip(layer_shapes, layer_shapes[1:])):
+        linear.add_module('linear_{}'.format(layer_num), nn.Linear(num_in, num_out))
+        linear.add_module('batchnorm_{}'.format(layer_num), nn.BatchNorm1d(num_out))
+        if layer_num != len(layer_shapes) - 2:
+            linear.add_module('dropout_{}'.format(layer_num), nn.Dropout(dropout_prob))
+            linear.add_module('relu_{}'.format(layer_num), nn.ReLU())
+
+    return linear
 
 
 class NNCorr(nn.Module):
-    pass
+    def __init__(self, layer_shapes=[1000, 500, 20], dropout_prob=0.1):
+        super(NNCorr, self).__init__()
+        self.linear = create_linear(layer_shapes, dropout_prob)
+
+    def forward(self, batch):
+        x = torch.stack(batch)
+        x = nn.ReLU(self.linear_1(x))
+
+        return nn.functional.softmax(x)
 
 
 class NNCorrPlusTDA(nn.Module):
@@ -19,17 +42,19 @@ def get_kernel(kernel='scale_space', weights=(0.5, 0.5)):
     :return:
     """
 
+    # kernel_approx = RBFSampler(gamma=0.5, n_components=100000).fit(np.ones([1,2]))
+    kernel_approx = None
 
     kernels = {
-        'scale_space': sklearn_tda.PersistenceScaleSpaceKernel(),
-        'weighted_gaussian': sklearn_tda.PersistenceWeightedGaussianKernel(),
+        'scale_space': sklearn_tda.PersistenceScaleSpaceKernel(kernel_approx=kernel_approx),
+        'weighted_gaussian': sklearn_tda.PersistenceWeightedGaussianKernel(kernel_approx=kernel_approx),
         'sliced_wasserstein': sklearn_tda.SlicedWassersteinKernel(),
-        'fisher': sklearn_tda.PersistenceFisherKernel(),
+        'fisher': sklearn_tda.PersistenceFisherKernel(kernel_approx=kernel_approx),
     }
 
     if kernel not in kernels.keys():
         raise KeyError("Specified kernel not found. Make sure it is one "
-                       "of ['scale_space', 'weighted_gaussian', 'slice_wasserstein', 'fisher]")
+                       "of ['scale_space', 'weighted_gaussian', 'sliced_wasserstein', 'fisher]")
 
     k = kernels[kernel]
 

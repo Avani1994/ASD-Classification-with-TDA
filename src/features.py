@@ -18,8 +18,9 @@ class Subject:
     def __init__(self, subject_id, label, roi_time_series):
         self.subject_id = subject_id
         self.label = label
-        self.rois_time_series = roi_time_series
+        self.roi_time_series = roi_time_series
         self.correlation_matrix = None
+        self.corr_vector = None
         self.persistence_diagram = None
         self.persistence_image = None
         self.persistence_landscape = None
@@ -35,7 +36,11 @@ class Subject:
         :param pd_metric_mapping: specify the function to map correlations to a
             valid distance matrix. Default is sqrt(1 - max(0, x))
         """
-        correlation = np.corrcoef(self.rois_time_series)
+        correlation = np.corrcoef(self.roi_time_series)
+
+        self.corr_vector = correlation[np.tril_indices(correlation.shape[0])]
+
+        self.correlation_matrix = correlation
 
         if pd_metric_mapping is None:
             # TODO: try sqrt(2*(1-corr))
@@ -44,7 +49,7 @@ class Subject:
 
         # Persistence diagram
         self.persistence_diagram       = Rips(maxdim=1, verbose=False).fit_transform(pd_metric_mapping(correlation),
-                                                                      distance_matrix=True)
+                                                                                     distance_matrix=True)
 
         # Remove points at infinity
         self.persistence_diagram       = sklearn_tda.DiagramSelector().transform(self.persistence_diagram)

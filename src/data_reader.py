@@ -24,6 +24,7 @@ class ABIDEDataReader:
 
         :param data_dir: path where the ABIDE ROI data is stored
         :param num_rois: either 200 or 400 (stands for CC200 or CC400 dataset)
+        :param compute_features: if true then each subjects persistence diagrams, images and landscapes are computed
         :return: list of Subject objects that contains the subject id, label and time series data for each individual
         """
 
@@ -47,10 +48,11 @@ class ABIDEDataReader:
                     subject_id = fname
                     label = int(label) - 1
                     roi_time_series = np.genfromtxt(os.path.join(data_dir, fname + '_rois_cc' + str(num_rois) + '.1D'))
+                    roi_time_series = roi_time_series.T
 
                     subject = Subject(subject_id, label, roi_time_series)
 
-                    if compute_features == True:
+                    if compute_features:
                         subject.compute_derived_measures()
 
                     subject_data.append(subject)
