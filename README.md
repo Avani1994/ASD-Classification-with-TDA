@@ -15,5 +15,5 @@
 * ``utils.py`` - contains utility functions for loading data and extracting model specific features.
 
 #### TODOs
-- [] Docstrings for all functions
-- [] Data download script
+- [ ] Docstrings for all functions
+- [ ] Data download script
