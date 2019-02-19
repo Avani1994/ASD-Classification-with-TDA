@@ -38,7 +38,7 @@ class Subject:
         """
         correlation = np.corrcoef(self.roi_time_series)
 
-        self.corr_vector = correlation[np.tril_indices(correlation.shape[0])]
+        self.corr_vector = correlation[np.tril_indices(correlation.shape[0], -1)]
 
         self.correlation_matrix = correlation
 

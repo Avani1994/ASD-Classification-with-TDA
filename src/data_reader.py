@@ -48,7 +48,7 @@ class ABIDEDataReader:
                     subject_id = fname
                     label = int(label) - 1
                     roi_time_series = np.genfromtxt(os.path.join(data_dir, fname + '_rois_cc' + str(num_rois) + '.1D'))
-                    roi_time_series = roi_time_series.T
+                    roi_time_series = roi_time_series.T + 1e-5
 
                     subject = Subject(subject_id, label, roi_time_series)
 
