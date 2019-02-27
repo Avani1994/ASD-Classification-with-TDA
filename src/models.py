@@ -47,7 +47,31 @@ class NNCorr(nn.Module):
         # x = torch.stack(batch)
         x = nn.functional.relu(self.linear(batch))
 
-        return nn.functional.softmax(x)
+        return nn.functional.softmax(x, dim=1)
+
+
+class NNPersDiag(nn.Module):
+
+    def __init__(self, pers_layers_shapes, merge_layer_shape, dropout_prob=0.1):
+        super(NNPersDiag, self).__init__()
+
+        self.branches = [create_slayer_linear(branch_shape, dropout_prob) for branch_shape in pers_layers_shapes]
+
+        for i, branch in enumerate(self.branches):
+            self.add_module('branch_{}'.format(i), branch)
+
+        if sum(map(lambda x: x[-1], pers_layers_shapes)) != merge_layer_shape[0]:
+            warnings.warn('Layer shape mismatch between first layer of merge and last layers of parallel modules',
+                          UserWarning)
+
+        self.merge_layer = create_linear(merge_layer_shape, dropout_prob)
+
+    def forward(self, pers_dim0, pers_dim1):
+        inputs = [pers_dim0, pers_dim1]
+        x = torch.cat([branch(branch_input) for branch, branch_input in zip(self.branches, inputs)], 1)
+        x = self.merge_layer(x)
+
+        return nn.functional.softmax(x, dim=1)
 
 
 class NNHybridVec(nn.Module):
@@ -65,11 +89,12 @@ class NNHybridVec(nn.Module):
 
         self.merge_layer = create_linear(merge_layer_shape, dropout_prob)
 
-    def forward(self, inputs):
+    def forward(self, vec_feature_1, vec_feature_2):
+        inputs = [vec_feature_1, vec_feature_2]
         x = torch.cat([branch(branch_input) for branch, branch_input in zip(self.branches, inputs)], 1)
         x = self.merge_layer(x)
 
-        return nn.functional.softmax(x)
+        return nn.functional.softmax(x, dim=1)
 
 
 class NNHybridPers(nn.Module):
@@ -93,11 +118,7 @@ class NNHybridPers(nn.Module):
         x = torch.cat([branch(branch_input) for branch, branch_input in zip(self.branches, inputs)], 1)
         x = self.merge_layer(x)
 
-        return nn.functional.softmax(x)
-
-
-class NNCorrPlusTDA(nn.Module):
-    pass
+        return nn.functional.softmax(x, dim=1)
 
 
 def get_kernel(kernel='scale_space', weights=(0.5, 0.5)):

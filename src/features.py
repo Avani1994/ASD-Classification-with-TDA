@@ -55,8 +55,8 @@ class Subject:
         self.persistence_diagram       = sklearn_tda.DiagramSelector().transform(self.persistence_diagram)
 
         # Vector representations of persistence diagrams
-        self.persistence_image         = PersImage(spread=0.1, pixels=correlation.shape, verbose=False).transform(self.persistence_diagram)
-        self.persistence_landscape     = sklearn_tda.Landscape().fit_transform(self.persistence_diagram)
+        self.persistence_image         = sum(PersImage(spread=0.01, pixels=(20, 20), verbose=False).transform(self.persistence_diagram)).flatten()
+        self.persistence_landscape     = sklearn_tda.Landscape().fit_transform(self.persistence_diagram).flatten()
 
         # Kernels over persistence diagrams
         # self.scale_space_kernel        = sklearn_tda.PersistenceScaleSpaceKernel().fit_transform(self.persistence_diagram)

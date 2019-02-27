@@ -18,7 +18,7 @@ class ABIDEDataReader:
     def __init__(self, verbose=True):
         self.verbose = verbose
 
-    def read(self, data_dir, num_rois=200, compute_features=True):
+    def read(self, data_dir, num_rois=200, compute_features=True, sample=None):
         """
         Read the data from specified `data_dir`
 
@@ -29,6 +29,7 @@ class ABIDEDataReader:
         """
 
         subject_data = []
+        num_processed = 0
 
         with open(os.path.join(data_dir, '..', 'site_labels.csv')) as site_labels:
             # Remove the header
@@ -48,7 +49,7 @@ class ABIDEDataReader:
                     subject_id = fname
                     label = int(label) - 1
                     roi_time_series = np.genfromtxt(os.path.join(data_dir, fname + '_rois_cc' + str(num_rois) + '.1D'))
-                    roi_time_series = roi_time_series.T + 1e-5
+                    roi_time_series = roi_time_series.T + 1e-7
 
                     subject = Subject(subject_id, label, roi_time_series)
 
@@ -56,5 +57,10 @@ class ABIDEDataReader:
                         subject.compute_derived_measures()
 
                     subject_data.append(subject)
+
+                num_processed += 1
+
+                if sample is not None and num_processed >= sample:
+                    return subject_data
 
         return subject_data
