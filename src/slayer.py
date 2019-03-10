@@ -418,4 +418,4 @@ class SLayer(SLayerExponential):
         super().__init__(*args, **kwargs)
 
 
-warnings.warn("Renaming in progress. In future use SLayerExponential.", FutureWarning)
+# warnings.warn("Renaming in progress. In future use SLayerExponential.", FutureWarning)

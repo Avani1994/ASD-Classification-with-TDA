@@ -25,6 +25,7 @@ class ABIDEDataReader:
         :param data_dir: path where the ABIDE ROI data is stored
         :param num_rois: either 200 or 400 (stands for CC200 or CC400 dataset)
         :param compute_features: if true then each subjects persistence diagrams, images and landscapes are computed
+        :param sample: Read only number of individuals equal to this value. If None, all data is read
         :return: list of Subject objects that contains the subject id, label and time series data for each individual
         """
 

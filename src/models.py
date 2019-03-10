@@ -6,6 +6,8 @@ import sklearn_tda
 import warnings
 from slayer import SLayer, UpperDiagonalThresholdedLogTransform
 import numpy as np
+from time import time
+from tqdm.autonotebook import tqdm
 
 
 def create_linear(layer_shapes, dropout_prob):
@@ -38,9 +40,9 @@ def create_slayer_linear(layer_shapes, dropout_prob):
     return linear
 
 
-class NNCorr(nn.Module):
+class NNVec(nn.Module):
     def __init__(self, layer_shapes, dropout_prob=0.1):
-        super(NNCorr, self).__init__()
+        super(NNVec, self).__init__()
         self.linear = create_linear(layer_shapes, dropout_prob)
 
     def forward(self, batch):
@@ -88,6 +90,7 @@ class NNHybridVec(nn.Module):
                           UserWarning)
 
         self.merge_layer = create_linear(merge_layer_shape, dropout_prob)
+        self.add_module('merge_layer', self.merge_layer)
 
     def forward(self, vec_feature_1, vec_feature_2):
         inputs = [vec_feature_1, vec_feature_2]
@@ -102,16 +105,20 @@ class NNHybridPers(nn.Module):
         super(NNHybridPers, self).__init__()
 
         self.branches = [create_slayer_linear(branch_shape, dropout_prob) for branch_shape in pers_layers_shapes]
-        self.branches += [create_linear(branch_shape, dropout_prob) for branch_shape in vec_layer_shapes]
+        if isinstance(vec_layer_shapes[0], list):
+            self.branches += [create_linear(branch_shape, dropout_prob) for branch_shape in vec_layer_shapes]
+        else:
+            self.branches.append(create_linear(vec_layer_shapes, dropout_prob))
 
         for i, branch in enumerate(self.branches):
             self.add_module('branch_{}'.format(i), branch)
 
-        if sum(map(lambda x: x[-1], pers_layers_shapes + vec_layer_shapes)) != merge_layer_shape[0]:
+        if sum(map(lambda x: x[-1], pers_layers_shapes + [vec_layer_shapes])) != merge_layer_shape[0]:
             warnings.warn('Layer shape mismatch between first layer of merge and last layers of parallel modules',
                           UserWarning)
 
         self.merge_layer = create_linear(merge_layer_shape, dropout_prob)
+        self.add_module('merge_layer', self.merge_layer)
 
     def forward(self, pers_dim0, pers_dim1, corr_features):
         inputs = [pers_dim0, pers_dim1, corr_features]
@@ -199,3 +206,125 @@ class PersistenceKernelSVM(BaseEstimator, ClassifierMixin):
 
     def predict(self, X):
         return self.svm.predict(self.kernel_(self.X_, X))
+
+
+class DataContainer:
+
+    def __init__(self, data):
+        self.X_train = data[0]
+        self.X_test  = data[1]
+        self.y_train = data[2]
+        self.y_test  = data[3]
+
+
+class Model:
+    def __init__(self, model, model_name: str, feature_extractor):
+        self.model = model
+        self.model_name = model_name
+        self.feature_extractor = feature_extractor
+        self._score = None
+        self.train_time = None
+
+    def fit(self, X, y):
+        start = time()
+        self.model.fit(X, y)
+        elapsed = time() - start
+        self.train_time = elapsed
+
+    def score(self, X, y, metric):
+        self._score = metric(y, self.model.predict(X))
+        return self._score
+
+    def __repr__(self):
+        return str(self.model)
+
+
+class ModelManager:
+
+    def __init__(self, persist_dir: str, dataset: DataContainer, overwrite=False):
+        """
+        Manage Sklearn compatible models. Handles dataset storage, model training, evaluating test metrics,
+        model comparison and generating performance reports
+
+        :param persist_dir: directory where models are persisted to disk for future evaluation
+        :param dataset: DataContainer object that contains the train and test split
+        :param overwrite: if True, allows overwriting another model with same model name.
+            If False, trying to overwrite same model raises a KeyError.
+        """
+
+        self.persist_dir = persist_dir
+        self.dataset = dataset
+        self.overwrite = overwrite
+        self.models = {}
+
+    def add_model(self, new_model, new_model_name, feature_extractor):
+        """
+        Add a new model object to the model manager
+
+        :param new_model: sklearn compatible model object
+        :param new_model_name: model name
+        :param feature_extractor: function that extracts the appropriate features
+        """
+
+        new_model_obj = Model(new_model, new_model_name, feature_extractor)
+
+        if not self.overwrite and new_model_name in self.models:
+            raise KeyError('"{}" already in ModelManger.'.format(new_model_name))
+        else:
+            self.models[new_model_name] = new_model_obj
+
+    def remove_model(self, model_name):
+        """
+        Remove a model from the manager
+
+        :param model_name: name of the model to be removed
+        """
+        if model_name not in self.models:
+            raise KeyError('"{}" not found.'.format(model_name))
+        else:
+            del self.models[model_name]
+
+    def train(self, model_name):
+        """
+        Train model with given name
+
+        :param model_name: name of the model
+        """
+
+        if model_name not in self.models:
+            raise KeyError('Model name = "{}" not found in ModelManager.'.format(model_name))
+
+        model = self.models[model_name]
+
+        X_train = model.feature_extractor(self.dataset.X_train)
+
+        model.fit(X_train, self.dataset.y_train)
+
+    def evaluate(self, model_name: str, metric):
+        """
+        Evaluate model w.r.t specified metric
+
+        :param model_name: name of the model
+        :param metric: function of form f(ground_truth, prediction) that returns a scalar value
+            such as accuracy, ground_truth and prediction can be lists or numpy arrays
+        :return: value of evaluated metric, also updates the Model object with the score
+        """
+
+        model: Model = self.models[model_name]
+
+        X_test = model.feature_extractor(self.dataset.X_test)
+
+        return model.score(X_test, self.dataset.y_test, metric)
+
+    def train_all(self, subset=None):
+        prog_bar = tqdm(self.models)
+
+        for model_name in prog_bar:
+            if subset is not None and model_name not in subset:
+                    continue
+            prog_bar.set_description('Model = {}'.format(model_name))
+            self.train(model_name)
+
+    def evaluate_all(self, metric):
+        for model_name in self.models:
+            self.evaluate(model_name, metric)
