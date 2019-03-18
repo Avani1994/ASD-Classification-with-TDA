@@ -5,10 +5,9 @@ from sklearn.svm import SVC
 import sklearn_tda
 import warnings
 from slayer import SLayer, UpperDiagonalThresholdedLogTransform
-import pandas as pd
+import numpy as np
 from time import time
 from tqdm.autonotebook import tqdm
-from utils import DataContainer
 
 
 def create_linear(layer_shapes, dropout_prob):
@@ -209,12 +208,21 @@ class PersistenceKernelSVM(BaseEstimator, ClassifierMixin):
         return self.svm.predict(self.kernel_(self.X_, X))
 
 
+class DataContainer:
+
+    def __init__(self, data):
+        self.X_train = data[0]
+        self.X_test  = data[1]
+        self.y_train = data[2]
+        self.y_test  = data[3]
+
+
 class Model:
     def __init__(self, model, model_name: str, feature_extractor):
         self.model = model
         self.model_name = model_name
         self.feature_extractor = feature_extractor
-        self.score_ = None
+        self._score = None
         self.train_time = None
 
     def fit(self, X, y):
@@ -224,8 +232,8 @@ class Model:
         self.train_time = elapsed
 
     def score(self, X, y, metric):
-        self.score_ = metric(y, self.model.predict(X))
-        return self.score_
+        self._score = metric(y, self.model.predict(X))
+        return self._score
 
     def __repr__(self):
         return str(self.model)
@@ -318,23 +326,5 @@ class ModelManager:
             self.train(model_name)
 
     def evaluate_all(self, metric):
-        prog_bar = tqdm(self.models)
-
-        for model_name in prog_bar:
-            self.evaluate(model_name, metric)
-            prog_bar.set_description('Evaluating {}'.format(model_name))
-
-    def tabulate(self, model_filter=None):
-        table = []
-
         for model_name in self.models:
-            if model_filter is not None and model_name not in model_filter:
-                continue
-
-            model = self.models[model_name]
-            table.append((model_name, model.train_time, model.score_))
-
-        return pd.DataFrame(data=table, columns=['Name', 'Train time', 'Score'])
-
-    def permutation_test(self):
-        pass
+            self.evaluate(model_name, metric)

@@ -92,10 +92,6 @@ def get_topology_features(X, dims=(0, 1)):
     return topology_features
 
 
-def get_pers_diag_kern_features(X):
-    return X
-
-
 def get_pers_diag_corr_features(X):
 
     topo_features = get_topology_features(X)
