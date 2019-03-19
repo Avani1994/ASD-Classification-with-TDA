@@ -5,18 +5,9 @@ from sklearn.metrics import accuracy_score
 import numpy as np
 import torch
 import slayer
-
+from models import DataContainer
 
 NUM_ROIS = 200
-
-
-class DataContainer:
-
-    def __init__(self, data):
-        self.X_train = data[0]
-        self.X_test  = data[1]
-        self.y_train = data[2]
-        self.y_test  = data[3]
 
 
 def read_and_build_features(fresh=False, compute_features=True, sample=None):
@@ -101,6 +92,10 @@ def get_pers_diag_corr_features(X):
                  'corr_features': torch.Tensor(get_corr_features(X))}
 
     return data_dict
+
+
+def get_pers_diag_kern_features(X):
+    return X
 
 
 def get_pers_img_corr_features(X):

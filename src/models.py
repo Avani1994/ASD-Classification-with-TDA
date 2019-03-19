@@ -6,8 +6,11 @@ import sklearn_tda
 import warnings
 from slayer import SLayer, UpperDiagonalThresholdedLogTransform
 import numpy as np
+import pandas as pd
 from time import time
 from tqdm.autonotebook import tqdm
+from sklearn.metrics.cluster import contingency_matrix
+import statsmodels
 
 
 def create_linear(layer_shapes, dropout_prob):
@@ -216,6 +219,9 @@ class DataContainer:
         self.y_train = data[2]
         self.y_test  = data[3]
 
+    def __repr__(self):
+        return 'Train size={}, Test size={}'.format(len(self.X_train), len(self.X_test))
+
 
 class Model:
     def __init__(self, model, model_name: str, feature_extractor):
@@ -227,12 +233,15 @@ class Model:
 
     def fit(self, X, y):
         start = time()
-        self.model.fit(X, y)
+        self.model.fit(self.feature_extractor(X), y)
         elapsed = time() - start
         self.train_time = elapsed
 
+    def predict(self, X):
+        return self.model.predict(self.feature_extractor(X))
+
     def score(self, X, y, metric):
-        self._score = metric(y, self.model.predict(X))
+        self._score = metric(y, self.model.predict(self.feature_extractor(X)))
         return self._score
 
     def __repr__(self):
@@ -296,9 +305,9 @@ class ModelManager:
 
         model = self.models[model_name]
 
-        X_train = model.feature_extractor(self.dataset.X_train)
+        # X_train = model.feature_extractor(self.dataset.X_train)
 
-        model.fit(X_train, self.dataset.y_train)
+        model.fit(self.dataset.X_train, self.dataset.y_train)
 
     def evaluate(self, model_name: str, metric):
         """
@@ -312,9 +321,9 @@ class ModelManager:
 
         model: Model = self.models[model_name]
 
-        X_test = model.feature_extractor(self.dataset.X_test)
+        # X_test = model.feature_extractor(self.dataset.X_test)
 
-        return model.score(X_test, self.dataset.y_test, metric)
+        return model.score(self.dataset.X_test, self.dataset.y_test, metric)
 
     def train_all(self, subset=None):
         prog_bar = tqdm(self.models)
@@ -328,3 +337,25 @@ class ModelManager:
     def evaluate_all(self, metric):
         for model_name in self.models:
             self.evaluate(model_name, metric)
+
+    def tabulate(self):
+        table = []
+
+        for model_name, model in self.models.items():
+            table.append([model_name, model.train_time, model._score])
+
+        return pd.DataFrame(table, columns=['Model', 'Train time', 'Score'])
+
+    def mcnemar_test(self, model_name1: str, model_name2: str):
+        model1: Model = self.models[model_name1]
+        model2: Model = self.models[model_name2]
+        ytest = self.dataset.y_test
+
+        y_pred1 = model1.predict(self.dataset.X_test)
+        y_pred2 = model2.predict(self.dataset.X_test)
+
+        ground_truth = self.dataset.y_test
+
+        contingency_table = contingency_matrix(y_pred1 == ground_truth, y_pred2 == ground_truth)
+
+        print(statsmodels.stats.contingency_tables.mcnemar(contingency_table))
