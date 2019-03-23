@@ -1,4 +1,8 @@
 import numpy as np
+from sklearn.metrics.cluster import contingency_matrix
+from statsmodels.sandbox.stats.runs import mcnemar
+from sklearn.metrics import accuracy_score
+from scipy.stats import wilcoxon
 
 
 def swap_array(y1, y2, p=0.5):
@@ -18,7 +22,7 @@ def swap_array(y1, y2, p=0.5):
     return new_y1, new_y2
 
 
-def permutation_test(y1, y2, ground_truth, metric, n=10000):
+def permutation_test(y1, y2, ground_truth, metric=accuracy_score, n=1000):
     """ Compute the p-value of hypothesis that predictions from
     model1 are statistically significantly better than predictions
     from model2 with respect to provided metric
@@ -52,4 +56,17 @@ def permutation_test(y1, y2, ground_truth, metric, n=10000):
 
         metric_perm_diff_list[i] = acc_diff_perm
 
-    return metric_diff, metric_perm_diff_list, np.mean(metric_perm_diff_list > metric_diff)
+    p_value = np.mean(metric_perm_diff_list > metric_diff)
+    return p_value
+
+
+def mcnemar_test(y1, y2, ground_truth):
+    p_value = mcnemar(y1 == ground_truth, y2 == ground_truth)[1]
+
+    return p_value
+
+
+def wilcoxon_test(y1, ground_truth):
+    z, p_value = wilcoxon(y1, ground_truth)
+    print(z)
+    return p_value

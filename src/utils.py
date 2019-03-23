@@ -121,6 +121,10 @@ def get_pers_diag_features(X):
 
     return data_dict
 
+def get_pi_corr_vec_features(X):
+    pi = get_pers_img_features(X)
+    corr = get_corr_features(X)
+    return np.hstack()
 
 def save_model(model, path):
     print(path)
