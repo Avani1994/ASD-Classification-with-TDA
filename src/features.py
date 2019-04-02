@@ -24,10 +24,6 @@ class Subject:
         self.persistence_diagram = None
         self.persistence_image = None
         self.persistence_landscape = None
-        # self.scale_space_kernel = None
-        # self.weighted_gaussian_kernel = None
-        # self.sliced_wasserstein_kernel = None
-        # self.fisher_kernel = None
 
     def compute_derived_measures(self, pd_metric_mapping=None):
         """Compute the Pearson correlation matrix (optionally, the persistence
@@ -45,7 +41,7 @@ class Subject:
         if pd_metric_mapping is None:
             # TODO: try sqrt(2*(1-corr))
             def pd_metric_mapping(x): return np.sqrt(1 - np.clip(x, 0, None))
-            # def pd_metric_mapping(x): return np.sqrt(2 * (1 - x))
+            # def pd_metric_mapping(x): return np.sqrt(0.5 * (1 - x))
 
         # Persistence diagram
         self.persistence_diagram       = Rips(maxdim=1, verbose=False).fit_transform(pd_metric_mapping(correlation),
@@ -55,14 +51,6 @@ class Subject:
         self.persistence_diagram       = sklearn_tda.DiagramSelector().transform(self.persistence_diagram)
 
         # Vector representations of persistence diagrams
-        self.persistence_image         = sum(PersImage(pixels=(40, 40), verbose=False).transform(self.persistence_diagram)).flatten()
+        self.persistence_image_list    = PersImage(pixels=(40, 40), verbose=False).transform(self.persistence_diagram)
+        self.persistence_image         = sum(self.persistence_image_list).flatten()
         self.persistence_landscape     = sklearn_tda.Landscape().fit_transform(self.persistence_diagram).flatten()
-
-        # Kernels over persistence diagrams
-        # self.scale_space_kernel        = sklearn_tda.PersistenceScaleSpaceKernel().fit_transform(self.persistence_diagram)
-        # self.weighted_gaussian_kernel  = sklearn_tda.PersistenceWeightedGaussianKernel().fit_transform(self.persistence_diagram)
-        # self.sliced_wasserstein_kernel = sklearn_tda.SlicedWassersteinKernel().fit_transform(self.persistence_diagram)
-        # self.fisher_kernel             = sklearn_tda.PersistenceFisherKernel().fit_transform(self.persistence_diagram)
-
-        # UMAP based dimensionality reduction
-        # TODO - UMAP dimensionality reduction

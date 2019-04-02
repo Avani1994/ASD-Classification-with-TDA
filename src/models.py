@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.svm import SVC
 import sklearn_tda
@@ -132,6 +133,68 @@ class NNHybridPers(nn.Module):
         return nn.functional.softmax(x, dim=1)
 
 
+class NNConvBranched(nn.Module):
+    def __init__(self):
+        super(NNConvBranched, self).__init__()
+
+        branch1 = nn.Sequential(nn.Conv2d(1, 5, kernel_size=5, stride=1, padding=2),
+                                nn.ReLU(),
+                                nn.MaxPool2d(kernel_size=2, stride=2),
+                                nn.Conv2d(5, 10, kernel_size=5, stride=1, padding=2),
+                                nn.ReLU(),
+                                nn.MaxPool2d(kernel_size=2, stride=2)
+                                )
+        branch2 = nn.Sequential(nn.Conv2d(1, 5, kernel_size=5, stride=1, padding=2),
+                                nn.ReLU(),
+                                nn.MaxPool2d(kernel_size=2, stride=2),
+                                nn.Conv2d(5, 10, kernel_size=5, stride=1, padding=2),
+                                nn.ReLU(),
+                                nn.MaxPool2d(kernel_size=2, stride=2)
+                                )
+        self.branches = [branch1, branch2]
+        self.drop_out = nn.Dropout()
+        self.fc1 = nn.Linear(10 * 10 * 10 * 2, 100)
+        self.fc2 = nn.Linear(100, 2)
+
+    def forward(self, conv_dim0, conv_dim1):
+        inputs = [conv_dim0, conv_dim1]
+        x = torch.cat([branch(branch_input.float()).reshape(conv_dim0.size(0), -1) for branch, branch_input in zip(self.branches, inputs)], 1)
+        x = self.drop_out(x)
+        x = self.fc1(x)
+        x = self.fc2(x)
+
+        return nn.functional.softmax(x, dim=1)
+
+
+
+class NNConv(nn.Module):
+    def __init__(self, dim_channel=False):
+        super(NNConv, self).__init__()
+
+        if dim_channel:
+            c_in = 2
+        else:
+            c_in = 1
+        self.layer1 = nn.Sequential(nn.Conv2d(c_in, 5, kernel_size=5, stride=1, padding=2),
+                                    nn.ReLU(),
+                                    nn.MaxPool2d(kernel_size=2, stride=2))
+        self.layer2 = nn.Sequential(nn.Conv2d(5, 10, kernel_size=5, stride=1, padding=2),
+                                    nn.ReLU(),
+                                    nn.MaxPool2d(kernel_size=2, stride=2))
+        self.drop_out = nn.Dropout()
+        self.fc1 = nn.Linear(10 * 10 * 10, 100)
+        self.fc2 = nn.Linear(100, 2)
+
+    def forward(self, x):
+        out = self.layer1(x.float())
+        out = self.layer2(out)
+        out = out.reshape(out.size(0), -1)
+        out = self.drop_out(out)
+        out = self.fc1(out)
+        out = self.fc2(out)
+        return F.softmax(out, dim=1)
+
+
 def get_kernel(kernel='scale_space', weights=(0.5, 0.5), correlation=False):
     """
     Return a kernel function for use in kernel methods
@@ -139,10 +202,10 @@ def get_kernel(kernel='scale_space', weights=(0.5, 0.5), correlation=False):
         'weighted gaussian', 'sliced_wasserstein' or 'fisher'. The same kernel is used
         across all homology dimensions
     :param weights: scalar factor to weigh each dimension's gram matrix
+    :param correlation: if True, also use the correlation kernel
     :return: sum of weighted gram matrices
     """
 
-    # kernel_approx = RBFSampler(gamma=0.5, n_components=100000).fit(np.ones([1,2]))
     kernel_approx = None
 
     kernels = {
@@ -171,7 +234,7 @@ def get_kernel(kernel='scale_space', weights=(0.5, 0.5), correlation=False):
         if correlation:
             X = [x.corr_vector for x in data1]
             Y = [y.corr_vector for y in data2]
-            corr_kernel = linear_kernel(X, Y)
+            corr_kernel = linear_kernel(X, Y).T
             kernel_matrices.append(corr_kernel)
 
         return sum(kernel_matrices)
@@ -212,7 +275,7 @@ class PersistenceKernelSVM(BaseEstimator, ClassifierMixin):
         self.kernel_ = get_kernel(self.kernel_type, self.hdim_weights, correlation=self.corr_kernel)
 
         self.svm = SVC(C=self.C, kernel='precomputed')
-        self.svm.fit(self.kernel_(X, X), y)
+        self.svm.fit(self.kernel_(self.X_, self.X_), y)
 
         return self
 
@@ -239,6 +302,7 @@ class Model:
         self.feature_extractor = feature_extractor
         self._score = None
         self.train_time = None
+        self.confusion_matrix = None
 
     def fit(self, X, y):
         start = time()
@@ -255,7 +319,8 @@ class Model:
 
     def confusion_matrix(self, X, ground_truth):
         prediction = self.predict(X)
-        return confusion_matrix(ground_truth, prediction)
+        self.confusion_matrix = confusion_matrix(ground_truth, prediction)
+        return self.confusion_matrix
 
     def __repr__(self):
         return str(self.model)
@@ -343,7 +408,10 @@ class ModelManager:
             self.train(model_name)
 
     def evaluate_all(self, metric):
-        for model_name in self.models:
+        progress_bar = tqdm(self.models)
+
+        for model_name in progress_bar:
+            progress_bar.set_description('Model = {}'.format(model_name))
             self.evaluate(model_name, metric)
 
     def tabulate(self):
@@ -435,4 +503,3 @@ class ModelManager:
         p_values.insert(0, 'Accuracy', [self.models[m_name]._score for m_name in model_names])
 
         return p_values.round(decimals=4)
-

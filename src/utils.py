@@ -121,10 +121,38 @@ def get_pers_diag_features(X):
 
     return data_dict
 
-def get_pi_corr_vec_features(X):
-    pi = get_pers_img_features(X)
-    corr = get_corr_features(X)
-    return np.hstack()
+
+# def get_pi_corr_vec_features(X):
+#     pi = get_pers_img_features(X)
+#     corr = get_corr_features(X)
+#     return np.hstack()
+
+
+def get_pi_conv0_features(X):
+    pi_features = [x.persistence_image_list[0] for x in X]
+    return np.expand_dims(np.stack(pi_features), 1)
+
+
+def get_pi_conv1_features(X):
+    pi_features = [x.persistence_image_list[1] for x in X]
+    return np.expand_dims(np.stack(pi_features), 1)
+
+
+def get_pi_conv_dimchannel_features(X):
+    pi_features = [np.stack(x.persistence_image_list) for x in X]
+    return np.stack(pi_features)
+
+
+def get_pi_conv_sum_features(X):
+    pi_features = [x.persistence_image.reshape(40, 40) for x in X]
+    return np.expand_dims(np.stack(pi_features), 1)
+
+
+def get_pi_conv_hybrid_features(X):
+    data_dict = {'conv_dim0': get_pi_conv0_features(X),
+                 'conv_dim1': get_pi_conv1_features(X)}
+
+    return data_dict
 
 def save_model(model, path):
     print(path)
