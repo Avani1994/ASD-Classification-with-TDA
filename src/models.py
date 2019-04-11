@@ -210,7 +210,8 @@ def get_kernel(kernel='scale_space', weights=(0.5, 0.5), correlation=False):
 
     kernels = {
         'scale_space': sklearn_tda.PersistenceScaleSpaceKernel(kernel_approx=kernel_approx),
-        'weighted_gaussian': sklearn_tda.PersistenceWeightedGaussianKernel(kernel_approx=kernel_approx),
+        'weighted_gaussian': sklearn_tda.PersistenceWeightedGaussianKernel(weight=lambda x: np.arctan(np.power(x[1], 1)),
+                                                                           kernel_approx=kernel_approx),
         'sliced_wasserstein': sklearn_tda.SlicedWassersteinKernel(),
         'fisher': sklearn_tda.PersistenceFisherKernel(kernel_approx=kernel_approx),
     }

@@ -22,7 +22,7 @@ def swap_array(y1, y2, p=0.5):
     return new_y1, new_y2
 
 
-def permutation_test(y1, y2, ground_truth, metric=accuracy_score, n=1000):
+def permutation_test(y1, y2, ground_truth, metric=accuracy_score, n=10000):
     """ Compute the p-value of hypothesis that predictions from
     model1 are statistically significantly better than predictions
     from model2 with respect to provided metric
