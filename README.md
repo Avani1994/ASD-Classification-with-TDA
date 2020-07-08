@@ -3,7 +3,7 @@
 This repository contains the code for the paper [Autism Classification Using Topological Features
 and Deep Learning: A Cautionary Tale](https://link.springer.com/chapter/10.1007/978-3-030-32248-9_82).
 
-The driver code can be found in `Experiments.ipynb` - it contains the code to load the 
+The driver code can be found in `src/Experiments.ipynb` - it contains the code to load the 
 dataset, extract features, define and evalaute models.
 
 <hr>
