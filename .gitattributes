@@ -1,1 +1,1 @@
-*.1D linguist-detectable=false
+data/*/*.1D linguist-detectable=false
