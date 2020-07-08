@@ -1,19 +1,41 @@
 # Autism Classification with TDA
 
-### Directory Structure
----
-* ``data_reader.py`` - Contains structure to read the ABIDE dataset and compute the required 
-    topological features from the data
-* ``features.py`` - Contains the `Subject` class that holds the data and computed features for 
-    each individual in the ABIDE data. The computed features are - persistence diagram, 
-    persistence image and persistence landscape
-* ``models.py`` - Implements various models used in the experiments
-* ``permutation_test.py`` - Implements the one-sided permutation test for given performance metric
-* ``slayer.py`` - code from [CHofer](https://github.com/c-hofer/chofer_torchex) that implements 
-    the persistent homology based layer from this paper: *Hofer, Christoph, et al. "Deep learning with 
-    topological signatures." Advances in Neural Information Processing Systems. 2017.*
-* ``utils.py`` - contains utility functions for loading data and extracting model specific features.
+This repository contains the code for the paper [Autism Classification Using Topological Features
+and Deep Learning](https://link.springer.com/chapter/10.1007/978-3-030-32248-9_82).
 
-#### TODOs
-- [ ] Docstrings for all functions
-- [ ] Data download script
+The driver code can be found in `Experiments.ipynb` - it contains the code to load the 
+dataset, extract features, define and evalaute models.
+
+<hr>
+
+### Requirements
+The code is written for Python 3.7 and has been tested with the 
+following package configuration. Older versions of the package 
+may work but I haven't tested those.
+```
+numpy==1.18.5
+tqdm==4.47.0
+sklearn==0.23.1
+skorch==0.8.0
+ripser==0.3.2
+sklearn_tda               # https://github.com/MathieuCarriere/sklearn-tda
+torch==1.2.0
+pandas==0.25.1
+scipy==1.5.0
+statsmodels==0.11.1
+```
+
+<hr>
+
+If you find this code useful, please cite our paper:
+
+```
+@inproceedings{RathorePalandeWang2019,
+  title={Autism Classification Using Topological Features and Deep Learning: A Cautionary Tale},
+  author={Rathore, Archit and Palande, Sourabh and Anderson, Jeffrey S and Zielinski, Brandon A and Fletcher, P Thomas and Wang, Bei},
+  booktitle={International Conference on Medical Image Computing and Computer-Assisted Intervention},
+  pages={736--744},
+  year={2019},
+  organization={Springer}
+}
+```
