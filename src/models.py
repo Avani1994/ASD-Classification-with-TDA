@@ -9,7 +9,7 @@ from slayer import SLayer, UpperDiagonalThresholdedLogTransform
 import numpy as np
 import pandas as pd
 from time import time
-from tqdm.autonotebook import tqdm
+from tqdm.notebook import tqdm_notebook as tqdm
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics.pairwise import linear_kernel
 from statistical_testing import permutation_test, mcnemar_test, wilcoxon_test

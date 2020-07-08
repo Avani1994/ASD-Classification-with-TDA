@@ -7,10 +7,7 @@ import torch
 import slayer
 from models import DataContainer
 
-NUM_ROIS = 200
-
-
-def read_and_build_features(fresh=False, compute_features=True, sample=None):
+def read_and_build_features(num_rois, fresh=False, compute_features=True, sample=None):
     """
     Read the data from disk and compute features (persistence diagram, landscape
     and image. Stores the computed list to disk in `data_processed` directory
@@ -22,8 +19,8 @@ def read_and_build_features(fresh=False, compute_features=True, sample=None):
     :return: list of Subject class objects that contain individual data and
         computed features
     """
-    raw_data_location = '../data/ABIDE/rois_cc{}'.format(NUM_ROIS)
-    dump_location = '../data_processed/subjects_abide{}.pkl'.format(NUM_ROIS)
+    raw_data_location = '../data/rois_cc{}'.format(num_rois)
+    dump_location = '../data_processed/subjects_abide{}.pkl'.format(num_rois)
 
     if not fresh:
         # Load the precomputed results if it exists already
@@ -33,7 +30,7 @@ def read_and_build_features(fresh=False, compute_features=True, sample=None):
 
         except FileNotFoundError:
             reader = ABIDEDataReader()
-            subjects = reader.read(raw_data_location, num_rois=NUM_ROIS,
+            subjects = reader.read(raw_data_location, num_rois=num_rois,
                                    compute_features=compute_features, sample=sample)
 
             with open(dump_location, 'wb') as f:
@@ -43,7 +40,7 @@ def read_and_build_features(fresh=False, compute_features=True, sample=None):
 
     else:
         reader = ABIDEDataReader()
-        subjects = reader.read(raw_data_location, num_rois=NUM_ROIS,
+        subjects = reader.read(raw_data_location, num_rois=num_rois,
                                compute_features=compute_features, sample=sample)
 
         with open(dump_location, 'wb') as f:
@@ -67,7 +64,7 @@ def get_corr_features(X):
 
 
 def get_pers_img_features(X):
-    return np.vstack([x.persistence_image for x in X]).astype(np.float32)
+    return np.vstack([x.persistence_image.flatten() for x in X]).astype(np.float32)
 
 
 def get_pers_landscape_features(X):

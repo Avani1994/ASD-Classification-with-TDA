@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from tqdm.autonotebook import tqdm
+from tqdm.notebook import tqdm_notebook as tqdm
 from features import Subject
 
 
@@ -38,7 +38,7 @@ class ABIDEDataReader:
 
             # If verbose display progress bar using tqdm
             if self.verbose:
-                site_iterator = tqdm(site_labels, total=1112, desc='Reading ABIDE data (CC{})'.format(num_rois))
+                site_iterator = tqdm(site_labels, total=1035, desc='Reading ABIDE data (CC{})'.format(num_rois))
             else:
                 site_iterator = site_labels
 

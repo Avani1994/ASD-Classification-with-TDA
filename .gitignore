@@ -108,6 +108,6 @@ venv.bak/
 .idea/
 
 # Exclude data folders
-data/
+# data/
 data_processed/
 models/

@@ -49,8 +49,9 @@ class Subject:
 
         # Remove points at infinity
         self.persistence_diagram       = sklearn_tda.DiagramSelector().transform(self.persistence_diagram)
-
+        # print(self.persistence_diagram)
         # Vector representations of persistence diagrams
-        self.persistence_image_list    = PersImage(pixels=(40, 40), verbose=False).transform(self.persistence_diagram)
-        self.persistence_image         = sum(self.persistence_image_list).flatten()
+        # self.persistence_image_list    = PersImage(pixels=(40, 40), verbose=False).transform(self.persistence_diagram)
+        self.persistence_image_list    = sklearn_tda.PersistenceImage(resolution=[40, 40]).fit_transform(self.persistence_diagram)
+        self.persistence_image         = np.sum(self.persistence_image_list, axis=0).reshape(40, 40)
         self.persistence_landscape     = sklearn_tda.Landscape().fit_transform(self.persistence_diagram).flatten()
